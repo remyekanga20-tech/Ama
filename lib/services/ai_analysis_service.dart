@@ -1,66 +1,55 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class AiAnalysisService {
-  // IMPORTANT : remplace par ta vraie clé OpenAI
-  static const String _apiKey = 'TA_CLE_OPENAI_ICI';
-  static const String _baseUrl = 'https://api.openai.com/v1/chat/completions';
-  static const String _model = 'gpt-4o-mini';
+  // Ta clé Gemini (évite de la pousser sur un repo public)
+  static const String _apiKey = 'AIzaSyAUwM-1Np90F2iscL7_CBcN8HObfBW1yj8';
 
+  static final GenerativeModel _model = GenerativeModel(
+    model: 'gemini-1.0-pro',
+    apiKey: _apiKey,
+  );
+
+  /// Conseil rapide pour le flight companion, basé sur le dernier contexte de vol
   static Future<String> quickAdviceFromContext({
     required Map<String, dynamic> contextData,
   }) async {
     if (_apiKey.isEmpty) {
-      throw Exception("Clé API IA manquante.");
+      throw Exception("Clé Gemini manquante.");
     }
 
-    final prompt = _buildContextPrompt(contextData);
+    final alt = _toDouble(contextData['altitude']);
+    final vit = _toDouble(contextData['vitesse']);
+    final accelZ = _toDouble(contextData['accel_z']);
+    final temp = _toDouble(contextData['temperature']);
+    final roll = _toDouble(contextData['roll']);
+    final pitch = _toDouble(contextData['pitch']);
+    final yaw = _toDouble(contextData['yaw']);
 
-    final response = await http.post(
-      Uri.parse(_baseUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_apiKey',
-      },
-      body: jsonEncode({
-        'model': _model,
-        'messages': [
-          {
-            'role': 'system',
-            'content':
-            "Tu es un instructeur de pilotage. Tu donnes des conseils courts et concrets au pilote en te basant sur les données de vol, en français."
-          },
-          {
-            'role': 'user',
-            'content': prompt,
-          },
-        ],
-        'temperature': 0.4,
-        'max_tokens': 200,
-      }),
-    );
+    final prompt = StringBuffer()
+      ..writeln(
+          "Tu es un instructeur de pilotage. Donne un conseil court (1 ou 2 phrases) au pilote en te basant sur ces données de vol.")
+      ..writeln("Données actuelles :")
+      ..writeln("- altitude (m) = $alt")
+      ..writeln("- vitesse (m/s) = $vit")
+      ..writeln("- accel_z = $accelZ")
+      ..writeln("- temperature (°C) = $temp")
+      ..writeln("- roll (deg) = $roll")
+      ..writeln("- pitch (deg) = $pitch")
+      ..writeln("- yaw (deg) = $yaw")
+      ..writeln(
+          "Indique ce qu'il doit surveiller ou ajuster maintenant. Réponds en français, de façon pratique.");
 
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Erreur IA (${response.statusCode}) : ${response.body}');
+    final response =
+    await _model.generateContent([Content.text(prompt.toString())]);
+    final text = response.text ?? "";
+
+    if (text.trim().isEmpty) {
+      return "Les paramètres semblent corrects. Continue avec des manœuvres progressives et surveille les variations brusques.";
     }
 
-    final data = jsonDecode(response.body);
-    final text = data['choices'][0]['message']['content'] as String;
     return text.trim();
   }
 
-  static String _buildContextPrompt(Map<String, dynamic> ctx) {
-    final buf = StringBuffer();
-
-    buf.writeln("Voici la situation de vol actuelle :");
-    ctx.forEach((key, value) {
-      buf.writeln("- $key : $value");
-    });
-    buf.writeln(
-        "À partir de ces données, donne un conseil de pilotage simple (1 ou 2 phrases maximum), "
-            "en précisant quoi surveiller ou ajuster.");
-
-    return buf.toString();
-  }
+  static double _toDouble(dynamic v) =>
+      double.tryParse(v?.toString() ?? '0') ?? 0.0;
 }
