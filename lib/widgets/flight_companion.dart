@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../services/ai_analysis_service.dart';
 
 class FlightCompanion extends StatefulWidget {

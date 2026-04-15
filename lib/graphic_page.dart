@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+
 import 'charts/base_drone_chart.dart';
-import 'widgets/flight_companion.dart';
 import 'services/flight_brain.dart';
 import 'services/supabase_service.dart';
+import 'widgets/flight_companion.dart';
 
 class GraphicPage extends StatefulWidget {
   const GraphicPage({super.key});
